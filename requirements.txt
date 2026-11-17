@@ -1,0 +1,3 @@
+# Python runtime uses standard library (http.server, zipfile, json, subprocess).
+# Development & Automated QA test dependencies:
+pytest>=7.4.0

@@ -1,0 +1,11 @@
+{
+  "name": "devopsdsl-compiler-studio",
+  "version": "4.0.0",
+  "description": "DevOpsDSL: A Domain-Specific Infrastructure Compiler & Multi-Cloud IaC Synthesizer (CSA1422)",
+  "main": "devops_compiler.js",
+  "scripts": {
+    "test": "node tests/test_compiler.js",
+    "start": "python server.py"
+  },
+  "license": "MIT"
+}

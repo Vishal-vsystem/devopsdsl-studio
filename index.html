@@ -1,0 +1,2088 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DevOpsDSL — Infrastructure Compiler Studio &amp; Multi-Cloud IaC Synthesizer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-mono: 'JetBrains Mono', 'Cascadia Code', 'Consolas', monospace;
+    --indigo: #6366f1;
+    --indigo-soft: rgba(99, 102, 241, 0.14);
+    --cyan: #06b6d4;
+    --emerald: #10b981;
+    --emerald-soft: rgba(16, 185, 129, 0.14);
+    --amber: #f59e0b;
+    --amber-soft: rgba(245, 158, 11, 0.14);
+    --rose: #f43f5e;
+    --rose-soft: rgba(244, 63, 94, 0.14);
+  }
+
+  /* OBSIDIAN CARBON THEME (DEFAULT) */
+  [data-theme="dark"] {
+    --bg-app: #09090b;
+    --bg-ambient: radial-gradient(ellipse 75% 45% at 50% -12%, rgba(99, 102, 241, 0.16), transparent 70%);
+    --bg-nav: rgba(12, 12, 16, 0.85);
+    --bg-card: #111115;
+    --bg-card-2: #16161c;
+    --bg-hover: #1d1d26;
+    --bg-well: #09090d;
+    --border: rgba(255, 255, 255, 0.08);
+    --border-strong: rgba(255, 255, 255, 0.15);
+    --text-1: #fafafa;
+    --text-2: #d4d4d8;
+    --text-3: #a1a1aa;
+    --text-4: #71717a;
+    --card-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 12px 32px -12px rgba(0, 0, 0, 0.55);
+    --scroll-track: #09090b;
+    --scroll-thumb: #27272a;
+  }
+
+  /* SWISS DAYLIGHT THEME */
+  [data-theme="light"] {
+    --bg-app: #f4f6fb;
+    --bg-ambient: radial-gradient(ellipse 75% 45% at 50% -12%, rgba(99, 102, 241, 0.12), transparent 70%);
+    --bg-nav: rgba(255, 255, 255, 0.88);
+    --bg-card: #ffffff;
+    --bg-card-2: #f8fafc;
+    --bg-hover: #f1f5f9;
+    --bg-well: #0c101b; /* crisp dark terminal/code well like Stripe & Vercel Docs */
+    --border: #e2e8f0;
+    --border-strong: #cbd5e1;
+    --text-1: #0f172a;
+    --text-2: #334155;
+    --text-3: #64748b;
+    --text-4: #94a3b8;
+    --card-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 10px 28px -8px rgba(15, 23, 42, 0.07);
+    --scroll-track: #f1f5f9;
+    --scroll-thumb: #cbd5e1;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--scroll-thumb) var(--scroll-track);
+  }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--scroll-track); }
+  ::-webkit-scrollbar-thumb { background: var(--scroll-thumb); border-radius: 3px; }
+
+  body {
+    background-color: var(--bg-app);
+    background-image: var(--bg-ambient);
+    background-attachment: fixed;
+    color: var(--text-1);
+    font-family: var(--font-sans);
+    font-size: 13px;
+    line-height: 1.5;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: background-color 0.2s, color 0.2s;
+  }
+
+  /* SYNTAX TOKENS (ALWAYS CRISP DARK WELL) */
+  .hl-keyword { color: #c084fc; font-weight: 600; }
+  .hl-attr { color: #38bdf8; }
+  .hl-string { color: #4ade80; }
+  .hl-number { color: #fbbf24; }
+  .hl-bool { color: #f472b6; font-weight: 600; }
+  .hl-ident { color: #e2e8f0; }
+  .hl-comment { color: #64748b; font-style: italic; }
+  .hl-punct { color: #94a3b8; }
+
+  .svg-icon {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 1.9;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  /* TOP NAVBAR (54PX GLASSMORPHIC BAR) */
+  .navbar {
+    height: 54px;
+    background: var(--bg-nav);
+    backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    flex-shrink: 0;
+    z-index: 40;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    white-space: nowrap;
+  }
+  .brand-logo {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #6366f1 0%, #06b6d4 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
+  }
+  .brand-title { font-size: 14.5px; font-weight: 700; letter-spacing: -0.35px; }
+  .brand-sub { font-size: 11px; color: var(--text-3); font-family: var(--font-mono); }
+
+  /* TOP VIEW SWITCHER */
+  .nav-segmented {
+    display: flex;
+    align-items: center;
+    background: var(--bg-card-2);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    padding: 3px;
+    gap: 2px;
+  }
+  .seg-btn {
+    height: 28px;
+    padding: 0 13px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-3);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.15s;
+    white-space: nowrap;
+    font-family: var(--font-sans);
+  }
+  .seg-btn:hover { color: var(--text-1); }
+  .seg-btn.active {
+    background: var(--bg-card);
+    color: var(--text-1);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
+    border: 1px solid var(--border);
+  }
+
+  .nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .env-pills {
+    display: inline-flex;
+    height: 30px;
+    background: var(--bg-card-2);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 2px;
+    gap: 2px;
+  }
+  .env-pill {
+    border: none;
+    background: transparent;
+    color: var(--text-3);
+    font-size: 10.5px;
+    font-weight: 700;
+    font-family: var(--font-mono);
+    padding: 0 8px;
+    border-radius: 5px;
+    cursor: pointer;
+    text-transform: uppercase;
+  }
+  .env-pill.active { background: var(--indigo); color: #fff; }
+
+  .btn {
+    height: 31px;
+    padding: 0 12px;
+    border-radius: 7px;
+    font-size: 12px;
+    font-weight: 600;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    color: var(--text-2);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s;
+    font-family: var(--font-sans);
+  }
+  .btn:hover { background: var(--bg-hover); border-color: var(--border-strong); color: var(--text-1); }
+  .btn-sm { height: 25px; padding: 0 9px; font-size: 11px; border-radius: 6px; }
+  .btn-icon { width: 31px; padding: 0; justify-content: center; }
+
+  .btn-gradient {
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #fff;
+    box-shadow: 0 2px 12px rgba(99, 102, 241, 0.35);
+  }
+  .btn-gradient:hover {
+    background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
+    color: #fff;
+    transform: translateY(-0.5px);
+  }
+
+  .btn-emerald {
+    background: #10b981;
+    border-color: transparent;
+    color: #fff;
+  }
+  .btn-emerald:hover { background: #059669; color: #fff; }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 10.5px;
+    font-weight: 600;
+    font-family: var(--font-mono);
+    white-space: nowrap;
+  }
+  .badge-indigo { background: var(--indigo-soft); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.3); }
+  .badge-ok { background: var(--emerald-soft); color: var(--emerald); border: 1px solid rgba(16, 185, 129, 0.3); }
+  .badge-warn { background: var(--amber-soft); color: var(--amber); border: 1px solid rgba(245, 158, 11, 0.3); }
+  .badge-err { background: var(--rose-soft); color: var(--rose); border: 1px solid rgba(244, 63, 94, 0.3); }
+  .badge-neutral { background: var(--bg-card-2); color: var(--text-3); border: 1px solid var(--border); }
+
+  /* VIEW CONTAINERS */
+  .view-container {
+    flex: 1;
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+    min-height: 0;
+  }
+  .view-container.active { display: flex; }
+
+  /* PIPELINE RIBBON (6 INTERACTIVE MODULE NODES ACROSS THE TOP) */
+  .pipeline-ribbon {
+    padding: 10px 16px 0;
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  .stage-node {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 8px 11px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    transition: all 0.16s ease;
+    box-shadow: var(--card-shadow);
+    min-width: 0;
+  }
+  .stage-node:hover { border-color: var(--border-strong); transform: translateY(-1px); }
+  .stage-node.active {
+    border-color: var(--indigo);
+    background: linear-gradient(180deg, rgba(99, 102, 241, 0.10), transparent);
+    box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.35), var(--card-shadow);
+  }
+  .stage-meta { min-width: 0; }
+  .stage-num { font-size: 10px; font-weight: 700; font-family: var(--font-mono); color: var(--text-4); letter-spacing: 0.4px; }
+  .stage-name { font-size: 12px; font-weight: 700; color: var(--text-1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .stage-pill {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 6px;
+    background: var(--bg-card-2);
+    color: var(--text-3);
+    border: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .stage-pill.ok { background: var(--emerald-soft); color: var(--emerald); border-color: rgba(16, 185, 129, 0.25); }
+  .stage-pill.err { background: var(--rose-soft); color: var(--rose); border-color: rgba(244, 63, 94, 0.25); }
+
+  /* STUDIO 2-PANE SPLIT */
+  .studio-split {
+    flex: 1;
+    display: flex;
+    padding: 10px 16px 12px;
+    gap: 0;
+    overflow: hidden;
+    min-height: 0;
+  }
+
+  .card-surface {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: var(--card-shadow);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .editor-card { width: 42%; min-width: 310px; }
+  .showcase-card { flex: 1; min-width: 420px; }
+
+  .splitter {
+    width: 10px;
+    cursor: col-resize;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .splitter-bar {
+    width: 3px;
+    height: 34px;
+    border-radius: 999px;
+    background: var(--border-strong);
+    transition: all 0.15s;
+  }
+  .splitter:hover .splitter-bar, .splitter.dragging .splitter-bar { background: var(--indigo); height: 52px; }
+
+  .card-head {
+    min-height: 44px;
+    padding: 6px 14px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-card-2);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .preset-select {
+    height: 27px;
+    max-width: 195px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-strong);
+    color: var(--text-1);
+    padding: 0 8px;
+    border-radius: 6px;
+    font-size: 11.5px;
+    font-weight: 500;
+    outline: none;
+    cursor: pointer;
+    text-overflow: ellipsis;
+  }
+
+  /* DUAL-LAYER SYNTAX EDITOR */
+  .editor-well {
+    flex: 1;
+    background: var(--bg-well);
+    display: flex;
+    position: relative;
+    overflow: hidden;
+    min-height: 160px;
+  }
+  .gutter {
+    width: 44px;
+    background: rgba(0, 0, 0, 0.22);
+    border-right: 1px solid rgba(255, 255, 255, 0.06);
+    padding: 14px 8px 14px 4px;
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    line-height: 22px;
+    color: #52525b;
+    text-align: right;
+    user-select: none;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .g-line { height: 22px; display: flex; align-items: center; justify-content: flex-end; gap: 4px; }
+  .g-line.err { color: var(--rose); font-weight: 700; }
+  .g-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--rose); }
+
+  .code-stack { flex: 1; position: relative; overflow: hidden; }
+  .code-hl, .code-ta {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    padding: 14px 16px;
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    line-height: 22px;
+    letter-spacing: 0;
+    tab-size: 2;
+    white-space: pre;
+    border: none;
+    outline: none;
+  }
+  .code-hl {
+    pointer-events: none;
+    color: #e4e4e7;
+    z-index: 1;
+    overflow: hidden;
+  }
+  .code-ta {
+    z-index: 2;
+    background: transparent;
+    color: transparent;
+    caret-color: #ffffff;
+    resize: none;
+    overflow: auto;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .snippet-row {
+    padding: 7px 12px;
+    border-top: 1px solid var(--border);
+    background: var(--bg-card-2);
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 5px;
+  }
+  .chip {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 500;
+    padding: 2px 6px;
+    border-radius: 5px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text-3);
+    cursor: pointer;
+    transition: all 0.12s;
+  }
+  .chip:hover { border-color: var(--indigo); color: var(--text-1); background: var(--indigo-soft); }
+
+  .diag-footer {
+    padding: 8px 14px;
+    border-top: 1px solid var(--border);
+    background: var(--bg-card);
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+
+  /* RIGHT WORKBENCH CONTENT */
+  .stage-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 18px 20px;
+  }
+  .stage-panel { display: none; }
+  .stage-panel.active { display: block; animation: fadeSlide 0.16s ease; }
+
+  @keyframes fadeSlide {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .stat-tile {
+    background: var(--bg-card-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 11px 14px;
+    min-width: 0;
+  }
+  .stat-k { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-4); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .stat-v { font-size: 20px; font-weight: 700; font-family: var(--font-mono); font-variant-numeric: tabular-nums; margin: 2px 0; color: var(--text-1); }
+  .stat-s { font-size: 11px; color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .sub-card {
+    background: var(--bg-card-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 14px;
+    overflow: hidden;
+  }
+  .sub-card-head {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12.5px;
+    font-weight: 700;
+  }
+  .sub-card-body { padding: 14px; }
+
+  /* TOKEN FLOW STRIP */
+  .token-flow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 12px 14px;
+    background: var(--bg-well);
+    border-radius: 8px;
+    margin-bottom: 14px;
+    border: 1px solid var(--border);
+  }
+  .tok-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    color: #e4e4e7;
+    cursor: pointer;
+  }
+  .tok-chip:hover { border-color: var(--indigo); }
+  .tok-k { font-size: 9.5px; font-weight: 700; opacity: 0.8; }
+
+  /* CLEAN TABLE */
+  .clean-table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: left; }
+  .clean-table th {
+    padding: 8px 14px;
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-4);
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-card);
+    position: sticky;
+    top: 0;
+  }
+  .clean-table td {
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--border);
+    font-family: var(--font-mono);
+    color: var(--text-2);
+  }
+  .clean-table tr.clickable:hover td { background: var(--bg-hover); cursor: pointer; }
+
+  /* AST TREE */
+  .ast-well {
+    background: var(--bg-well);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: #e4e4e7;
+    max-height: 410px;
+    overflow: auto;
+  }
+  .ast-branch { margin-left: 16px; padding-left: 12px; border-left: 1px dashed rgba(255, 255, 255, 0.16); }
+  .ast-row { padding: 3px 6px; border-radius: 5px; display: flex; align-items: center; gap: 7px; cursor: pointer; }
+  .ast-row:hover { background: rgba(99, 102, 241, 0.16); }
+
+  /* RESOURCE SYMBOL CARDS */
+  .sym-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .sym-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    padding: 11px 13px;
+    cursor: pointer;
+    transition: border 0.15s;
+  }
+  .sym-card:hover { border-color: var(--indigo); }
+
+  /* CODEGEN PREVIEW */
+  .code-well {
+    background: var(--bg-well);
+    color: #e4e4e7;
+    border-radius: 0 0 10px 10px;
+    padding: 16px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 1.6;
+    overflow: auto;
+    max-height: 440px;
+    white-space: pre;
+  }
+
+  /* RADIAL SCORE + FINOPS HERO */
+  .devops-hero {
+    display: grid;
+    grid-template-columns: 210px 1fr;
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+  .score-ring-card {
+    background: var(--bg-card-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+
+  /* CI/CD STEPPER */
+  .cicd-track {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .cicd-step {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 9px 6px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+  .cicd-dot {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--bg-card-2);
+    border: 1px solid var(--border-strong);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    font-family: var(--font-mono);
+  }
+  .cicd-step.pass { border-color: rgba(16, 185, 129, 0.45); background: var(--emerald-soft); }
+  .cicd-step.pass .cicd-dot { background: var(--emerald); border-color: var(--emerald); color: #fff; }
+  .cicd-step.fail { border-color: rgba(244, 63, 94, 0.45); background: var(--rose-soft); }
+  .cicd-step.fail .cicd-dot { background: var(--rose); border-color: var(--rose); color: #fff; }
+
+  /* ARCHITECTURE LANDING SHOWCASE VIEW */
+  .arch-scroll { flex: 1; overflow-y: auto; padding: 32px 24px 48px; }
+  .arch-inner { max-width: 1120px; margin: 0 auto; }
+  .hero-banner {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 36px 40px;
+    box-shadow: var(--card-shadow);
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 32px;
+  }
+  .hero-h1 {
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.7px;
+    line-height: 1.2;
+    margin: 10px 0;
+  }
+  .gradient-text {
+    background: linear-gradient(135deg, #818cf8 0%, #22d3ee 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .arch-grid-5 {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .arch-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  /* AUDIT REPORT VIEW */
+  .report-scroll { flex: 1; overflow-y: auto; padding: 24px; }
+  .paper-doc {
+    max-width: 880px;
+    margin: 0 auto;
+    background: #ffffff;
+    color: #0f172a;
+    border-radius: 12px;
+    padding: 38px 46px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+  }
+  .paper-table { width: 100%; border-collapse: collapse; font-size: 12px; margin: 10px 0 18px; }
+  .paper-table th, .paper-table td { border: 1px solid #cbd5e1; padding: 7px 10px; text-align: left; }
+  .paper-table th { background: #f1f5f9; }
+
+  /* SLIDE-OVER DRAWER (SAVED SNAPSHOTS) + COMMAND PALETTE */
+  .drawer-mask {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(3px);
+    display: none;
+    z-index: 80;
+  }
+  .drawer-mask.open { display: flex; justify-content: flex-end; }
+  .drawer {
+    width: 340px;
+    max-width: 90vw;
+    background: var(--bg-card);
+    border-left: 1px solid var(--border);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: 18px;
+  }
+
+  .cmd-mask {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(4px);
+    display: none;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 12vh;
+    z-index: 90;
+  }
+  .cmd-mask.open { display: flex; }
+  .cmd-box {
+    width: 520px;
+    max-width: 92vw;
+    background: var(--bg-card);
+    border: 1px solid var(--border-strong);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.55);
+  }
+
+  /* FOOTER STATUS STRIP */
+  .footer-bar {
+    height: 26px;
+    padding: 0 18px;
+    border-top: 1px solid var(--border);
+    background: var(--bg-nav);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-4);
+    flex-shrink: 0;
+  }
+
+  @media (max-width: 1240px) {
+    .pipeline-ribbon { gap: 6px; }
+    .stage-node { padding: 7px 8px; }
+    .stage-name { font-size: 11px; }
+    .hero-banner { flex-direction: column; align-items: flex-start; }
+  }
+  @media print {
+    body * { visibility: hidden; }
+    #view-report, #view-report * { visibility: visible; }
+    #view-report { position: absolute; inset: 0; overflow: visible; display: block !important; }
+    .no-print { display: none !important; }
+    .paper-doc { box-shadow: none; padding: 0; max-width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+  <!-- TOP NAVIGATION BAR -->
+  <header class="navbar">
+    <div class="brand">
+      <div class="brand-logo">
+        <svg class="svg-icon" viewBox="0 0 24 24" style="width:16px;height:16px;stroke:#fff;"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+      </div>
+      <div>
+        <div style="display:flex; align-items:center; gap:7px;">
+          <span class="brand-title">DevOpsDSL</span>
+          <span class="badge badge-indigo">Studio v4.0</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- CENTER VIEW SWITCHER -->
+    <nav class="nav-segmented">
+      <button class="seg-btn active" data-view="view-studio" onclick="switchView('view-studio', this)">
+        <svg class="svg-icon" viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+        Studio
+      </button>
+      <button class="seg-btn" data-view="view-arch" onclick="switchView('view-arch', this)">
+        <svg class="svg-icon" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        Architecture &amp; 20 Upgrades
+      </button>
+      <button class="seg-btn" data-view="view-report" onclick="switchView('view-report', this)">
+        <svg class="svg-icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        Audit Report
+      </button>
+    </nav>
+
+    <!-- RIGHT ACTIONS -->
+    <div class="nav-actions">
+      <div class="env-pills" title="Target Environment Profile">
+        <button class="env-pill active" onclick="setEnv('dev', this)">dev</button>
+        <button class="env-pill" onclick="setEnv('staging', this)">stg</button>
+        <button class="env-pill" onclick="setEnv('prod', this)">prod</button>
+      </div>
+
+      <button class="btn btn-icon" onclick="toggleTheme()" id="themeToggleBtn" title="Switch Light / Dark Theme">
+        <svg class="svg-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+      </button>
+
+      <button class="btn" onclick="openCmdPalette()" title="Command Palette (Ctrl+K)">
+        <svg class="svg-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <span style="font-family:var(--font-mono); font-size:10.5px;">Ctrl+K</span>
+      </button>
+
+      <button class="btn btn-gradient" onclick="runCompile()">
+        <svg class="svg-icon" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        Compile
+      </button>
+
+      <button class="btn" onclick="exportBundle()" title="Download Multi-Target IaC Bundle (.zip)">
+        <svg class="svg-icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Export .zip
+      </button>
+    </div>
+  </header>
+
+  <!-- VIEW 1: COMPILER STUDIO -->
+  <div id="view-studio" class="view-container active">
+    <!-- INTERACTIVE 6-STAGE PIPELINE RIBBON -->
+    <div class="pipeline-ribbon">
+      <div class="stage-node active" data-stage="stage-lexer" onclick="switchStage('stage-lexer', this)">
+        <div class="stage-meta">
+          <div class="stage-num">MODULE 01</div>
+          <div class="stage-name">Lexical Scan</div>
+        </div>
+        <span class="stage-pill ok" id="ribLex">0 tok</span>
+      </div>
+      <div class="stage-node" data-stage="stage-parser" onclick="switchStage('stage-parser', this)">
+        <div class="stage-meta">
+          <div class="stage-num">MODULE 02</div>
+          <div class="stage-name">Syntax AST</div>
+        </div>
+        <span class="stage-pill ok" id="ribPar">VALID</span>
+      </div>
+      <div class="stage-node" data-stage="stage-semantic" onclick="switchStage('stage-semantic', this)">
+        <div class="stage-meta">
+          <div class="stage-num">MODULE 03</div>
+          <div class="stage-name">Semantic Guard</div>
+        </div>
+        <span class="stage-pill ok" id="ribSem">0 err</span>
+      </div>
+      <div class="stage-node" data-stage="stage-ir" onclick="switchStage('stage-ir', this)">
+        <div class="stage-meta">
+          <div class="stage-num">MODULE 04</div>
+          <div class="stage-name">IR &amp; DAG Sort</div>
+        </div>
+        <span class="stage-pill ok" id="ribIr">0 stg</span>
+      </div>
+      <div class="stage-node" data-stage="stage-codegen" onclick="switchStage('stage-codegen', this)">
+        <div class="stage-meta">
+          <div class="stage-num">MODULE 05</div>
+          <div class="stage-name">Multi-CodeGen</div>
+        </div>
+        <span class="stage-pill ok" id="ribCg">5 targets</span>
+      </div>
+      <div class="stage-node" data-stage="stage-devops" onclick="switchStage('stage-devops', this)">
+        <div class="stage-meta">
+          <div class="stage-num">INNOVATION</div>
+          <div class="stage-name">DevOps &amp; Cost</div>
+        </div>
+        <span class="stage-pill ok" id="ribDev">100/100</span>
+      </div>
+    </div>
+
+    <!-- 2-PANE SPLIT WORKBENCH -->
+    <div class="studio-split">
+      <!-- LEFT: CODE EDITOR CARD -->
+      <div class="card-surface editor-card" id="editorCard">
+        <div class="card-head">
+          <div style="display:flex; align-items:center; gap:8px; min-width:0;">
+            <span style="font-family:var(--font-mono); font-weight:700; font-size:12px;">main.dsl</span>
+            <select class="preset-select" id="presetSelect" onchange="loadPreset(this.value)">
+              <option value="microservices">Microservices (Nginx + PG)</option>
+              <option value="slide11">Canonical Slide 11 (Web + DB)</option>
+              <option value="enterprise">3-Tier Enterprise Cloud</option>
+              <option value="err_undeclared">Error: Undeclared Symbol</option>
+              <option value="err_type">Error: Port Type Mismatch</option>
+              <option value="err_cycle">Error: Circular Dependency</option>
+            </select>
+          </div>
+          <div style="display:flex; align-items:center; gap:4px;">
+            <button class="btn btn-sm" onclick="openDrawer()" title="Saved Workspace Snapshots">Snapshots</button>
+            <button class="btn btn-sm" onclick="formatCode()">Format</button>
+            <button class="btn btn-sm" onclick="shareUrlState()">Share</button>
+          </div>
+        </div>
+
+        <div class="editor-well">
+          <div class="gutter" id="editorGutter"></div>
+          <div class="code-stack">
+            <pre class="code-hl" id="editorHighlight" aria-hidden="true"></pre>
+            <textarea class="code-ta" id="dslEditor" spellcheck="false" autocomplete="off"></textarea>
+          </div>
+        </div>
+
+        <div class="snippet-row">
+          <span style="font-size:10px; font-weight:700; color:var(--text-4); text-transform:uppercase;">Insert:</span>
+          <button class="chip" onclick="insertSnippet('server')">+ server</button>
+          <button class="chip" onclick="insertSnippet('database')">+ db</button>
+          <button class="chip" onclick="insertSnippet('network')">+ net</button>
+          <button class="chip" onclick="insertSnippet('cache')">+ cache</button>
+          <button class="chip" onclick="insertSnippet('volume')">+ vol</button>
+          <button class="chip" onclick="insertSnippet('depends')">+ depends_on</button>
+        </div>
+
+        <div class="diag-footer">
+          <span id="diagMessage" style="color:var(--emerald); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Ready</span>
+          <span id="diagTiming" style="color:var(--text-4); flex-shrink:0;">0.00 ms</span>
+        </div>
+      </div>
+
+      <!-- DRAGGABLE DIVIDER -->
+      <div class="splitter" id="splitResizer"><div class="splitter-bar"></div></div>
+
+      <!-- RIGHT: STAGE SHOWCASE CARD -->
+      <div class="card-surface showcase-card">
+        <div class="card-head">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <strong id="stagePanelTitle" style="font-size:13px;">Module 01 &mdash; Lexical Analysis</strong>
+            <span class="badge badge-neutral" id="stagePanelSubtitle">DFA Character Scanner</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:6px;">
+            <button class="btn btn-emerald btn-sm" onclick="runCICDPipeline()">Run CI/CD</button>
+          </div>
+        </div>
+
+        <div class="stage-body">
+          <!-- STAGE 01: LEXER -->
+          <div id="stage-lexer" class="stage-panel active">
+            <div class="stats-grid">
+              <div class="stat-tile"><div class="stat-k">Tokens</div><div class="stat-v" id="lexTotal">0</div><div class="stat-s" id="lexLines">0 lines</div></div>
+              <div class="stat-tile"><div class="stat-k">Keywords</div><div class="stat-v" id="lexKw">0</div><div class="stat-s">Resource keywords</div></div>
+              <div class="stat-tile"><div class="stat-k">Identifiers</div><div class="stat-v" id="lexId">0</div><div class="stat-s">Names &amp; keys</div></div>
+              <div class="stat-tile"><div class="stat-k">Literals</div><div class="stat-v" id="lexLit">0</div><div class="stat-s" id="lexComm">0 comments</div></div>
+            </div>
+
+            <div class="sub-card">
+              <div class="sub-card-head">
+                <span>Visual Token Stream <span style="font-weight:400; color:var(--text-4); font-size:11px;">(Click any chip or row to locate in code)</span></span>
+                <input type="text" id="tokenSearchInput" placeholder="Filter..." oninput="filterTokens()" style="background:var(--bg-card); border:1px solid var(--border-strong); color:var(--text-1); padding:3px 9px; border-radius:6px; font-size:11px; outline:none; width:140px;">
+              </div>
+              <div class="sub-card-body">
+                <div class="token-flow" id="tokenFlowChips"></div>
+                <div style="max-height:290px; overflow:auto; border:1px solid var(--border); border-radius:8px;">
+                  <table class="clean-table">
+                    <thead><tr><th style="width:50px">#</th><th style="width:115px">Type</th><th>Lexeme</th><th style="width:85px">Pos</th><th style="width:105px">Category</th></tr></thead>
+                    <tbody id="tokenTableBody"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- STAGE 02: PARSER & AST -->
+          <div id="stage-parser" class="stage-panel">
+            <div class="stats-grid">
+              <div class="stat-tile"><div class="stat-k">Resources</div><div class="stat-v" id="astRes">0</div><div class="stat-s">Top declarations</div></div>
+              <div class="stat-tile"><div class="stat-k">AST Nodes</div><div class="stat-v" id="astNodes">0</div><div class="stat-s">Syntax nodes</div></div>
+              <div class="stat-tile"><div class="stat-k">Tree Depth</div><div class="stat-v" id="astDepth">0</div><div class="stat-s">Max nesting</div></div>
+              <div class="stat-tile"><div class="stat-k">CFG Status</div><div class="stat-v" id="astState" style="color:var(--emerald)">VALID</div><div class="stat-s" id="astRules">0 reductions</div></div>
+            </div>
+
+            <div class="sub-card">
+              <div class="sub-card-head">
+                <span>Abstract Syntax Tree</span>
+                <div style="display:flex; gap:6px;">
+                  <button class="btn btn-sm" id="btnAstTree" onclick="toggleAstView('tree')" style="border-color:var(--indigo);">Visual Tree</button>
+                  <button class="btn btn-sm" id="btnAstJson" onclick="toggleAstView('json')">Raw JSON</button>
+                </div>
+              </div>
+              <div class="sub-card-body">
+                <div class="ast-well" id="astTreeViewer"></div>
+                <pre class="code-well" id="astJsonViewer" style="display:none; border-radius:8px; border:1px solid var(--border);"></pre>
+              </div>
+            </div>
+          </div>
+
+          <!-- STAGE 03: SEMANTIC ANALYSIS -->
+          <div id="stage-semantic" class="stage-panel">
+            <div class="stats-grid">
+              <div class="stat-tile"><div class="stat-k">Symbols</div><div class="stat-v" id="semCount">0</div><div class="stat-s">Global environment</div></div>
+              <div class="stat-tile"><div class="stat-k">References</div><div class="stat-v" id="semRef" style="color:var(--emerald)">100%</div><div class="stat-s">Symbol resolution</div></div>
+              <div class="stat-tile"><div class="stat-k">Cycle Check</div><div class="stat-v" id="semCycle" style="color:var(--emerald)">ACYCLIC</div><div class="stat-s">DFS path tracker</div></div>
+              <div class="stat-tile"><div class="stat-k">Type Safety</div><div class="stat-v" id="semType" style="color:var(--emerald)">PASS</div><div class="stat-s">Strict validation</div></div>
+            </div>
+
+            <div id="semanticAlertBox" style="display:none; background:var(--rose-soft); border:1px solid rgba(244,63,94,0.35); border-radius:10px; padding:12px 14px; margin-bottom:14px;"></div>
+
+            <div class="sym-grid" id="symbolCardsGrid"></div>
+
+            <div class="sub-card">
+              <div class="sub-card-head"><span>Type &amp; Reference Verification Matrix</span></div>
+              <div style="max-height:260px; overflow:auto;">
+                <table class="clean-table">
+                  <thead><tr><th>Rule</th><th>Target</th><th>Assertion</th><th>Line</th><th>Result</th></tr></thead>
+                  <tbody id="semanticMatrixBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- STAGE 04: IR & DAG TOPOLOGY -->
+          <div id="stage-ir" class="stage-panel">
+            <div class="stats-grid">
+              <div class="stat-tile"><div class="stat-k">DAG Nodes</div><div class="stat-v" id="irVerts">0</div><div class="stat-s">Graph vertices</div></div>
+              <div class="stat-tile"><div class="stat-k">Dependencies</div><div class="stat-v" id="irEdges">0</div><div class="stat-s">Directed edges</div></div>
+              <div class="stat-tile"><div class="stat-k">Stages</div><div class="stat-v" id="irStages">0</div><div class="stat-s">Kahn parallel tiers</div></div>
+              <div class="stat-tile"><div class="stat-k">Optimizations</div><div class="stat-v" id="irOpts">0</div><div class="stat-s">IR passes run</div></div>
+            </div>
+
+            <div class="sub-card">
+              <div class="sub-card-head">
+                <span>Provisioning Dependency DAG</span>
+                <span style="font-size:11px; font-weight:400; color:var(--text-4);">Click a node to inspect synthesized IR</span>
+              </div>
+              <div class="sub-card-body">
+                <div style="background:var(--bg-well); border:1px solid var(--border); border-radius:8px; padding:10px; overflow-x:auto;">
+                  <svg id="dagSvg" height="245" style="min-width:100%; display:block;"></svg>
+                </div>
+                <div id="dagNodeInspector" style="display:none; margin-top:10px; padding:10px 12px; background:var(--bg-card); border:1px solid var(--indigo); border-radius:8px; font-family:var(--font-mono); font-size:11.5px;"></div>
+              </div>
+            </div>
+
+            <div class="sub-card">
+              <div class="sub-card-head"><span>Optimization &amp; Topological Ordering</span></div>
+              <div class="sub-card-body" id="irOptimizationsList"></div>
+            </div>
+          </div>
+
+          <!-- STAGE 05: CODEGEN -->
+          <div id="stage-codegen" class="stage-panel">
+            <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
+              <div class="nav-segmented">
+                <button class="seg-btn active" onclick="switchTarget('tf', this)">Terraform</button>
+                <button class="seg-btn" onclick="switchTarget('compose', this)">Compose</button>
+                <button class="seg-btn" onclick="switchTarget('k8s', this)">Kubernetes</button>
+                <button class="seg-btn" onclick="switchTarget('ansible', this)">Ansible</button>
+                <button class="seg-btn" onclick="switchTarget('gha', this)">GitHub CI</button>
+              </div>
+              <div style="display:flex; gap:6px;">
+                <button class="btn btn-sm" onclick="copyTargetCode()">Copy</button>
+                <button class="btn btn-sm" onclick="downloadTargetFile()">Download</button>
+                <button class="btn btn-gradient btn-sm" onclick="exportBundle()">Export .zip</button>
+              </div>
+            </div>
+
+            <div class="sub-card">
+              <div class="sub-card-head">
+                <span id="codegenFilename" style="font-family:var(--font-mono);">main.tf</span>
+                <span id="codegenLinesBadge" class="badge badge-neutral">0 lines</span>
+              </div>
+              <pre class="code-well" id="codegenOutput"></pre>
+            </div>
+          </div>
+
+          <!-- STAGE 06: DEVOPS INNOVATION, FINOPS & CI/CD -->
+          <div id="stage-devops" class="stage-panel">
+            <div class="devops-hero">
+              <div class="score-ring-card">
+                <svg width="92" height="92" viewBox="0 0 100 100">
+                  <circle cx="50" cy="50" r="42" fill="none" stroke="var(--border-strong)" stroke-width="8"/>
+                  <circle id="scoreRingArc" cx="50" cy="50" r="42" fill="none" stroke="#10b981" stroke-width="8" stroke-linecap="round" stroke-dasharray="263.9" stroke-dashoffset="0" transform="rotate(-90 50 50)"/>
+                  <text x="50" y="48" text-anchor="middle" fill="var(--text-1)" font-size="20" font-weight="800" font-family="JetBrains Mono, monospace" id="scoreRingVal">100</text>
+                  <text x="50" y="64" text-anchor="middle" fill="var(--emerald)" font-size="11" font-weight="700" id="scoreRingGrade">Grade A+</text>
+                </svg>
+                <div style="font-size:11px; color:var(--text-3); margin-top:4px; font-weight:600;">Shift-Left Resilience</div>
+              </div>
+
+              <div class="stats-grid" style="grid-template-columns: repeat(3, minmax(0, 1fr)); margin-bottom:0; align-content:center;">
+                <div class="stat-tile"><div class="stat-k">Workloads</div><div class="stat-v" id="finPods">0</div><div class="stat-s">Pod replicas</div></div>
+                <div class="stat-tile"><div class="stat-k">Compute</div><div class="stat-v" id="finCpu">0 vCPU</div><div class="stat-s" id="finMem">0.00 GB RAM</div></div>
+                <div class="stat-tile"><div class="stat-k">Est. Cost</div><div class="stat-v" id="finCost" style="color:var(--cyan)">$0.00</div><div class="stat-s">Cloud / month</div></div>
+              </div>
+            </div>
+
+            <div class="sub-card">
+              <div class="sub-card-head">
+                <span>Policy Linter &amp; Auto-Remediation</span>
+                <button class="btn btn-emerald btn-sm" id="fixAllBtn" onclick="applyAllFixes()" style="display:none;">Auto-Fix All</button>
+              </div>
+              <div class="sub-card-body" id="findingsContainer"></div>
+            </div>
+
+            <div class="sub-card">
+              <div class="sub-card-head">
+                <span>6-Stage CI/CD Delivery Simulator</span>
+                <button class="btn btn-emerald btn-sm" onclick="runCICDPipeline()">Run Pipeline</button>
+              </div>
+              <div class="sub-card-body">
+                <div class="cicd-track">
+                  <div class="cicd-step" id="pipeStep1"><div class="cicd-dot">1</div><span style="font-size:10.5px;font-weight:600;">Lint</span></div>
+                  <div class="cicd-step" id="pipeStep2"><div class="cicd-dot">2</div><span style="font-size:10.5px;font-weight:600;">Lex/AST</span></div>
+                  <div class="cicd-step" id="pipeStep3"><div class="cicd-dot">3</div><span style="font-size:10.5px;font-weight:600;">Semantic</span></div>
+                  <div class="cicd-step" id="pipeStep4"><div class="cicd-dot">4</div><span style="font-size:10.5px;font-weight:600;">IR Sort</span></div>
+                  <div class="cicd-step" id="pipeStep5"><div class="cicd-dot">5</div><span style="font-size:10.5px;font-weight:600;">CodeGen</span></div>
+                  <div class="cicd-step" id="pipeStep6"><div class="cicd-dot">6</div><span style="font-size:10.5px;font-weight:600;">Dry-Run</span></div>
+                </div>
+                <div id="cicdConsole" style="background:var(--bg-well); border:1px solid var(--border); border-radius:8px; padding:10px 12px; font-family:var(--font-mono); font-size:11.5px; color:#d4d4d8; height:120px; overflow-y:auto;">
+                  <span style="color:#71717a;">Click 'Run Pipeline' to simulate automated CI/CD verification.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- VIEW 2: ARCHITECTURE & 20 UPGRADES SHOWCASE -->
+  <div id="view-arch" class="view-container">
+    <div class="arch-scroll">
+      <div class="arch-inner">
+        <div class="hero-banner">
+          <div>
+            <span class="badge badge-indigo">COMPILER DESIGN (CSA1422) &middot; SAVEETHA ENGINEERING COLLEGE</span>
+            <h1 class="hero-h1">Compile Multi-Cloud Infrastructure <br><span class="gradient-text">Before Deployment Fails.</span></h1>
+            <p style="color:var(--text-3); max-width:560px; font-size:13.5px; margin-bottom:18px;">
+              DevOpsDSL unifies Terraform, Docker Compose, Kubernetes, Ansible, and GitHub Actions CI into a single type-safe compiler pipeline guided by <strong>Dr. K. Pandikumar</strong>.
+            </p>
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+              <button class="btn btn-gradient" onclick="switchView('view-studio', document.querySelector('[data-view=view-studio]'))">Launch Compiler Studio</button>
+              <button class="btn" onclick="switchView('view-report', document.querySelector('[data-view=view-report]'))">View Academic Audit Report</button>
+            </div>
+          </div>
+          <div style="background:var(--bg-well); border:1px solid var(--border-strong); border-radius:12px; padding:16px 20px; font-family:var(--font-mono); font-size:12px; color:#e4e4e7; min-width:300px;">
+            <div style="color:#71717a; margin-bottom:6px;">// DevOpsDSL Context-Free Grammar</div>
+            <div><span class="hl-keyword">program</span>  &rarr; resource*</div>
+            <div><span class="hl-keyword">resource</span> &rarr; TYPE ID '{' attr* '}'</div>
+            <div><span class="hl-keyword">attr</span>     &rarr; ID '=' value</div>
+            <div><span class="hl-keyword">value</span>    &rarr; NUMBER | STRING | BOOL | list</div>
+          </div>
+        </div>
+
+        <h2 style="font-size:16px; font-weight:700; margin-bottom:12px;">5-Module Engineering Ownership</h2>
+        <div class="arch-grid-5">
+          <div class="stat-tile"><span class="badge badge-indigo">Module 01</span><h3 style="margin:8px 0 4px; font-size:14px;">Lexical Analysis</h3><p style="font-size:12px; color:var(--text-3);">DFA tokenizer, comment stripping, exact line/col offsets.</p><div style="margin-top:8px; font-size:11px; font-weight:600; color:var(--cyan);">K. Subashree (192522396)</div></div>
+          <div class="stat-tile"><span class="badge badge-indigo">Module 02</span><h3 style="margin:8px 0 4px; font-size:14px;">Syntax Analysis</h3><p style="font-size:12px; color:var(--text-3);">Recursive-descent CFG parser producing verifiable AST.</p><div style="margin-top:8px; font-size:11px; font-weight:600; color:var(--cyan);">Vishwa U (192511192)</div></div>
+          <div class="stat-tile"><span class="badge badge-indigo">Module 03</span><h3 style="margin:8px 0 4px; font-size:14px;">Semantic Analysis</h3><p style="font-size:12px; color:var(--text-3);">Symbol table, strict type safety, DFS cycle detection.</p><div style="margin-top:8px; font-size:11px; font-weight:600; color:var(--cyan);">Vishal Balaji J (192525014)</div></div>
+          <div class="stat-tile"><span class="badge badge-indigo">Module 04</span><h3 style="margin:8px 0 4px; font-size:14px;">IR &amp; Optimization</h3><p style="font-size:12px; color:var(--text-3);">Dependency DAG, Kahn topological stages &amp; FinOps.</p><div style="margin-top:8px; font-size:11px; font-weight:600; color:var(--cyan);">Divya U (192372277)</div></div>
+          <div class="stat-tile"><span class="badge badge-indigo">Module 05</span><h3 style="margin:8px 0 4px; font-size:14px;">Code Generation</h3><p style="font-size:12px; color:var(--text-3);">Terraform, Compose, K8s, Ansible, &amp; CI emitters.</p><div style="margin-top:8px; font-size:11px; font-weight:600; color:var(--cyan);">Ganesh Reddy V (192525262)</div></div>
+        </div>
+
+        <h2 style="font-size:16px; font-weight:700; margin-bottom:12px;">20 Software-Company Production Upgrades</h2>
+        <div class="arch-grid-2" id="upgradesShowcaseGrid"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- VIEW 3: OVERALL ACADEMIC & INDUSTRY AUDIT REPORT -->
+  <div id="view-report" class="view-container">
+    <div class="report-scroll">
+      <div style="max-width:880px; margin:0 auto 14px; display:flex; justify-content:flex-end; gap:8px;" class="no-print">
+        <button class="btn" onclick="downloadReportJson()">Download JSON Audit</button>
+        <button class="btn btn-gradient" onclick="window.print()">Print / Save PDF</button>
+      </div>
+      <div class="paper-doc">
+        <div style="text-align:center; border-bottom:2px solid #0f172a; padding-bottom:14px; margin-bottom:20px;">
+          <div style="font-size:16px; font-weight:800;">SAVEETHA ENGINEERING COLLEGE (AUTONOMOUS)</div>
+          <div style="font-size:12px; color:#475569;">DEPARTMENT OF COMPUTER SCIENCE AND ENGINEERING</div>
+          <div style="font-size:11.5px; font-weight:700; margin-top:4px;">COURSE: COMPILER DESIGN (CSA1422) | PROJECT GUIDE: DR. K. PANDIKUMAR</div>
+          <div style="font-size:17px; font-weight:800; color:#4338ca; margin-top:8px;">DevOpsDSL: A Domain-Specific Infrastructure Compiler</div>
+        </div>
+
+        <h3 style="font-size:12.5px; text-transform:uppercase; color:#4338ca;">1. Candidate Team Roster</h3>
+        <table class="paper-table">
+          <thead><tr><th>S.No</th><th>Candidate Name</th><th>Register No</th><th>Module Ownership</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td><strong>K. Subashree</strong></td><td>192522396</td><td>Module 1: Lexical Analysis &amp; Tokenizer</td></tr>
+            <tr><td>2</td><td><strong>Vishwa U</strong></td><td>192511192</td><td>Module 2: Syntax Analysis &amp; CFG Parser</td></tr>
+            <tr><td>3</td><td><strong>Vishal Balaji J</strong></td><td>192525014</td><td>Module 3: Semantic Analysis &amp; Cycle Detection</td></tr>
+            <tr><td>4</td><td><strong>Divya U</strong></td><td>192372277</td><td>Module 4: Intermediate Representation &amp; DAG Optimizer</td></tr>
+            <tr><td>5</td><td><strong>Ganesh Reddy V</strong></td><td>192525262</td><td>Module 5: Multi-Target Code Generation &amp; DevOps</td></tr>
+          </tbody>
+        </table>
+
+        <h3 style="font-size:12.5px; text-transform:uppercase; color:#4338ca;">2. Live 5-Phase Compiler Verification Metrics</h3>
+        <table class="paper-table">
+          <thead><tr><th>Compiler Phase</th><th>Verified Output Metrics</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td>Module 1: Lexical Analysis</td><td id="repTokens">-</td><td id="repLexSt">PASS</td></tr>
+            <tr><td>Module 2: Syntax Analysis</td><td id="repAst">-</td><td id="repParSt">PASS</td></tr>
+            <tr><td>Module 3: Semantic Analysis</td><td id="repSem">-</td><td id="repSemSt">PASS</td></tr>
+            <tr><td>Module 4: IR &amp; Optimization</td><td id="repIr">-</td><td id="repIrSt">OPTIMIZED</td></tr>
+            <tr><td>Module 5: Code Generation</td><td id="repCg">-</td><td>SYNTHESIZED (5 Targets)</td></tr>
+          </tbody>
+        </table>
+
+        <h3 style="font-size:12.5px; text-transform:uppercase; color:#4338ca;">3. DevOps Security Audit &amp; FinOps Summary</h3>
+        <div id="repDevopsBox" style="background:#f8fafc; border:1px solid #cbd5e1; border-radius:6px; padding:10px 14px; font-size:12px; margin-bottom:18px;"></div>
+
+        <h3 style="font-size:12.5px; text-transform:uppercase; color:#4338ca;">4. Compiled Source Listing</h3>
+        <pre id="repSourcePre" style="background:#f8fafc; border:1px solid #cbd5e1; padding:12px; border-radius:6px; font-family:monospace; font-size:11px; white-space:pre-wrap;"></pre>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:44px; margin-top:34px; padding-top:16px; border-top:1px dashed #94a3b8;">
+          <div style="text-align:center;"><div style="border-bottom:1px solid #000; height:32px; margin-bottom:5px;"></div><strong style="font-size:11px;">Project Team Signatures</strong></div>
+          <div style="text-align:center;"><div style="border-bottom:1px solid #000; height:32px; margin-bottom:5px;"></div><strong style="font-size:11px;">Faculty Guide (Dr. K. Pandikumar)</strong></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE-OVER DRAWER: SAVED WORKSPACE SNAPSHOTS -->
+  <div class="drawer-mask" id="snapshotDrawer" onclick="if(event.target===this) closeDrawer()">
+    <div class="drawer">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+        <strong>Saved Workspace Snapshots</strong>
+        <button class="btn btn-sm" onclick="closeDrawer()">Close</button>
+      </div>
+      <div style="display:flex; gap:6px; margin-bottom:14px;">
+        <input type="text" id="snapNameInput" placeholder="Snapshot name..." style="flex:1; background:var(--bg-card-2); border:1px solid var(--border-strong); color:var(--text-1); padding:5px 9px; border-radius:6px; font-size:12px; outline:none;">
+        <button class="btn btn-gradient btn-sm" onclick="saveCurrentSnapshot()">Save</button>
+      </div>
+      <div id="snapshotsList" style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:6px;"></div>
+    </div>
+  </div>
+
+  <!-- COMMAND PALETTE (CTRL+K) -->
+  <div class="cmd-mask" id="cmdModal" onclick="if(event.target===this) closeCmdPalette()">
+    <div class="cmd-box">
+      <input type="text" id="cmdSearch" placeholder="Type a command or jump to compiler module..." oninput="renderCmdList()" style="width:100%; padding:13px 16px; background:var(--bg-card-2); border:none; border-bottom:1px solid var(--border); color:var(--text-1); font-size:13px; outline:none;">
+      <div id="cmdList" style="padding:8px; max-height:290px; overflow-y:auto;"></div>
+    </div>
+  </div>
+
+  <!-- STATUS BAR -->
+  <footer class="footer-bar">
+    <div style="display:flex; gap:14px;">
+      <span>DevOpsDSL Engine v4.0</span>
+      <span id="statusEnv">ENV: DEV</span>
+      <span id="statusMode">RUNTIME: CHECKING</span>
+    </div>
+    <div style="display:flex; gap:14px;">
+      <span id="statusCursor">Ln 1, Col 1</span>
+      <span>CSA1422 Compiler Design</span>
+    </div>
+  </footer>
+
+  <script src="devops_compiler.js?v=4.0.0"></script>
+  <script>
+    const PRESETS = {
+      microservices: `// DevOpsDSL Microservices Stack\nnetwork network1 {\n  driver = "bridge"\n}\n\ndatabase db1 {\n  image = "postgres:15"\n  port = 5432\n  depends_on = [network1]\n}\n\nserver web1 {\n  image = "nginx:latest"\n  port = 8080\n  depends_on = [db1]\n}`,
+      slide11: `// Canonical Slide 11 Example\nserver web1 {\n  image = "nginx"\n  port  = 8080\n  depends_on = db1\n}\n\ndatabase db1 {\n  image = "postgres"\n  port  = 5432\n}`,
+      enterprise: `// 3-Tier Enterprise Cloud Stack\nnetwork prod_vpc {\n  driver = "overlay"\n}\n\nvolume db_data {\n  driver = "local"\n}\n\ncache redis_cluster {\n  image = "redis:7.2-alpine"\n  port = 6379\n  depends_on = [prod_vpc]\n}\n\ndatabase postgres_primary {\n  image = "postgres:15.6-alpine"\n  port = 5432\n  depends_on = [prod_vpc, db_data]\n}\n\nserver api_gateway {\n  image = "golang:1.22-alpine"\n  port = 8000\n  replicas = 2\n  depends_on = [postgres_primary, redis_cluster]\n}\n\nserver web_frontend {\n  image = "nginx:1.25-alpine"\n  port = 8080\n  replicas = 2\n  depends_on = [api_gateway]\n}`,
+      err_undeclared: `// Slide 8 Semantic Error: Undeclared Reference\nserver web1 {\n  image = "nginx:1.25-alpine"\n  port = 8080\n  depends_on = [ghost_db]\n}`,
+      err_type: `// Slide 8 Semantic Error: Port Type Mismatch\nserver web1 {\n  image = "nginx:1.25-alpine"\n  port = "eighty"\n}`,
+      err_cycle: `// Slide 8 Semantic Error: Circular Dependency\nserver web1 {\n  image = "nginx:1.25-alpine"\n  port = 8080\n  depends_on = [db1]\n}\n\ndatabase db1 {\n  image = "postgres:15.6-alpine"\n  port = 5432\n  depends_on = [web1]\n}`
+    };
+
+    const UPGRADES = [
+      ['01', 'Obsidian & Daylight Dual-Theme', 'Zero-clutter Zinc Obsidian default with instant Swiss Daylight switcher.'],
+      ['02', 'Interactive 6-Stage Pipeline Ribbon', 'Visual compiler pipeline strip across the top with live token, error & stage telemetry.'],
+      ['03', 'Dual-Layer Syntax Highlighting', 'Real-time token colorization synced cleanly inside the interactive DSL editor.'],
+      ['04', 'Inline Gutter Error Diagnostics', 'Offending line numbers highlight with red indicator dots from AST/Semantic errors.'],
+      ['05', 'Draggable Split-Pane Studio', 'Smooth vertical resizer lets developers adjust Editor vs Workbench space dynamically.'],
+      ['06', 'Monochrome SVG Iconography', 'Crisp vector icons across headers, explorer, and DAG replacing uneven OS emojis.'],
+      ['07', 'Keyboard Command Palette (Ctrl+K)', 'Quick-jump launcher to execute compiles, CI/CD runs, fixes, and module views.'],
+      ['08', 'Environment Profile Overlays', 'Switch between dev, stg, and prod profiles scaling HA replicas & memory quotas.'],
+      ['09', 'Source-to-Token Bidirectional Jump', 'Click any token chip, table row, or AST node to jump straight to that editor line.'],
+      ['10', 'Visual Token Flow Ribbon', 'Renders colored typographic token badges alongside the full character offset table.'],
+      ['11', 'Dynamic Auto-Sized Bezier DAG', 'Node boxes automatically widen to fit long identifiers cleanly inside Stage swimlanes.'],
+      ['12', 'Interactive DAG Node Inspector', 'Click any resource vertex in the dependency DAG to inspect synthesized IR properties.'],
+      ['13', 'Transitive Dependency Reduction', 'Module 4 optimizer detects and eliminates redundant transitive dependency edges.'],
+      ['14', '5-Target Highlighted CodeGen', 'Single-pass syntax highlighters for Terraform, Compose, Kubernetes, Ansible & GitHub CI.'],
+      ['15', 'One-Click Security Auto-Fix', 'Policy findings offer Auto-Fix and Auto-Fix All buttons that patch DSL code live.'],
+      ['16', 'Radial Security Gauge & FinOps', 'Animated SVG resilience ring paired with cloud vCPU, RAM, and monthly cost projections.'],
+      ['17', '6-Stage CI/CD Delivery Simulator', 'Animated gating pipeline simulating Lint -> Lex/AST -> Semantic -> IR -> Build -> Dry-Run.'],
+      ['18', 'Portable Pure-JS ZIP Exporter', 'Custom CRC32 PKZIP builder downloads full multi-target .zip bundles on static GitHub Pages OR locally.'],
+      ['19', 'Hybrid Snapshot Persistence', 'Saves workspace blueprints to REST /api/projects locally and localStorage on public hosting.'],
+      ['20', 'Container, Nginx & Pytest QA Suite', 'Production Dockerfile, Nginx reverse-proxy, 12 Node tests, 5 Pytest API tests, and GitHub CI.']
+    ];
+
+    const STAGE_META = {
+      'stage-lexer': ['Module 01 — Lexical Analysis', 'DFA Character Scanner'],
+      'stage-parser': ['Module 02 — Syntax Analysis', 'CFG Recursive Descent Parser'],
+      'stage-semantic': ['Module 03 — Semantic Analysis', 'Symbol Table & Cycle Guard'],
+      'stage-ir': ['Module 04 — Intermediate Representation', 'DAG & Kahn Topological Sort'],
+      'stage-codegen': ['Module 05 — Code Generation', 'Multi-Target IaC Synthesizer'],
+      'stage-devops': ['Core Innovation — DevOps & FinOps', 'Shift-Left Security & CI/CD']
+    };
+
+    let activeCompilation = null;
+    let activeEnv = 'dev';
+    let activeTarget = 'tf';
+    let hasBackend = false;
+    let typingTimer = null;
+
+    window.addEventListener('DOMContentLoaded', () => {
+      const ed = document.getElementById('dslEditor');
+      if (window.location.hash.startsWith('#code=')) {
+        try { ed.value = decodeURIComponent(escape(atob(window.location.hash.slice(6)))); }
+        catch { ed.value = PRESETS.microservices; }
+      } else {
+        ed.value = PRESETS.microservices;
+      }
+
+      ed.addEventListener('input', () => {
+        syncEditor();
+        clearTimeout(typingTimer);
+        typingTimer = setTimeout(() => runCompile(true), 220);
+      });
+      ed.addEventListener('scroll', () => {
+        document.getElementById('editorHighlight').scrollTop = ed.scrollTop;
+        document.getElementById('editorHighlight').scrollLeft = ed.scrollLeft;
+        document.getElementById('editorGutter').scrollTop = ed.scrollTop;
+      });
+      ed.addEventListener('click', updateCursor);
+      ed.addEventListener('keyup', updateCursor);
+      ed.addEventListener('keydown', (e) => {
+        if (e.key === 'Tab') {
+          e.preventDefault();
+          const s = ed.selectionStart, end = ed.selectionEnd;
+          ed.value = ed.value.substring(0, s) + '  ' + ed.value.substring(end);
+          ed.selectionStart = ed.selectionEnd = s + 2;
+          syncEditor();
+        }
+        if (e.ctrlKey && e.key === 'Enter') { e.preventDefault(); runCompile(); }
+      });
+
+      document.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); openCmdPalette(); }
+        if (e.key === 'Escape') { closeCmdPalette(); closeDrawer(); }
+      });
+
+      initSplitter();
+      renderUpgradesShowcase();
+      detectRuntime();
+      runCompile();
+    });
+
+    function toggleTheme() {
+      const root = document.documentElement;
+      const next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      root.setAttribute('data-theme', next);
+    }
+
+    function switchView(viewId, btn) {
+      document.querySelectorAll('.view-container').forEach(v => v.classList.remove('active'));
+      document.querySelectorAll('.nav-segmented .seg-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById(viewId).classList.add('active');
+      if (btn) btn.classList.add('active');
+      if (viewId === 'view-report') populateReport();
+    }
+
+    function switchStage(stageId, el) {
+      document.querySelectorAll('.stage-node').forEach(n => n.classList.remove('active'));
+      document.querySelectorAll('.stage-panel').forEach(p => p.classList.remove('active'));
+      if (el) el.classList.add('active');
+      document.getElementById(stageId).classList.add('active');
+      const [t, sub] = STAGE_META[stageId] || ['Compiler Stage', ''];
+      document.getElementById('stagePanelTitle').textContent = t;
+      document.getElementById('stagePanelSubtitle').textContent = sub;
+    }
+
+    function setEnv(env, btn) {
+      activeEnv = env;
+      document.querySelectorAll('.env-pill').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('statusEnv').textContent = `ENV: ${env.toUpperCase()}`;
+      runCompile();
+    }
+
+    function initSplitter() {
+      const resizer = document.getElementById('splitResizer');
+      const left = document.getElementById('editorCard');
+      let dragging = false;
+      resizer.addEventListener('mousedown', () => { dragging = true; resizer.classList.add('dragging'); document.body.style.cursor = 'col-resize'; });
+      document.addEventListener('mousemove', (e) => {
+        if (!dragging) return;
+        const w = Math.max(300, Math.min(window.innerWidth - 460, e.clientX - 16));
+        left.style.width = `${w}px`;
+      });
+      document.addEventListener('mouseup', () => { dragging = false; resizer.classList.remove('dragging'); document.body.style.cursor = ''; });
+    }
+
+    function syncEditor() {
+      const ed = document.getElementById('dslEditor');
+      const code = ed.value;
+      const hl = DevOpsCompiler?.Highlighters?.highlightDSL;
+      document.getElementById('editorHighlight').innerHTML = (hl ? hl.call(DevOpsCompiler.Highlighters, code) : esc(code)) + '\n';
+
+      const errs = new Set((activeCompilation?.allErrors || []).map(e => e.line).filter(Boolean));
+      const lines = Math.max(1, code.split('\n').length);
+      let g = '';
+      for (let i = 1; i <= lines; i++) {
+        const isErr = errs.has(i);
+        g += `<div class="g-line ${isErr ? 'err' : ''}">${isErr ? '<span class="g-dot"></span>' : ''}${i}</div>`;
+      }
+      document.getElementById('editorGutter').innerHTML = g;
+      updateCursor();
+    }
+
+    function updateCursor() {
+      const ed = document.getElementById('dslEditor');
+      const sub = ed.value.substring(0, ed.selectionStart).split('\n');
+      document.getElementById('statusCursor').textContent = `Ln ${sub.length}, Col ${sub[sub.length - 1].length + 1}`;
+    }
+
+    function jumpToLine(ln) {
+      const ed = document.getElementById('dslEditor');
+      const lines = ed.value.split('\n');
+      let pos = 0;
+      for (let i = 0; i < Math.min(ln - 1, lines.length); i++) pos += lines[i].length + 1;
+      ed.focus();
+      ed.setSelectionRange(pos, pos + (lines[ln - 1] || '').length);
+      ed.scrollTop = Math.max(0, (ln - 4) * 22);
+      document.getElementById('editorHighlight').scrollTop = ed.scrollTop;
+      document.getElementById('editorGutter').scrollTop = ed.scrollTop;
+      updateCursor();
+    }
+
+    function loadPreset(key) {
+      if (!PRESETS[key]) return;
+      document.getElementById('dslEditor').value = PRESETS[key];
+      document.getElementById('presetSelect').value = key;
+      runCompile();
+    }
+
+    function formatCode() {
+      let indent = 0;
+      document.getElementById('dslEditor').value = document.getElementById('dslEditor').value.split('\n').map(l => {
+        const t = l.trim();
+        if (t.startsWith('}')) indent = Math.max(0, indent - 1);
+        const r = t ? '  '.repeat(indent) + t : '';
+        if (t.endsWith('{')) indent++;
+        return r;
+      }).join('\n');
+      runCompile();
+    }
+
+    function shareUrlState() {
+      const b64 = btoa(unescape(encodeURIComponent(document.getElementById('dslEditor').value)));
+      window.location.hash = `code=${b64}`;
+      navigator.clipboard?.writeText(window.location.href);
+      document.getElementById('diagMessage').textContent = 'Shareable URL hash copied to clipboard';
+    }
+
+    function insertSnippet(type) {
+      const id = Date.now().toString().slice(-3);
+      const map = {
+        server: `\nserver svc_${id} {\n  image = "nginx:1.25-alpine"\n  port = 8080\n  replicas = 2\n}\n`,
+        database: `\ndatabase db_${id} {\n  image = "postgres:15.6-alpine"\n  port = 5432\n}\n`,
+        network: `\nnetwork net_${id} {\n  driver = "bridge"\n}\n`,
+        cache: `\ncache redis_${id} {\n  image = "redis:7.2-alpine"\n  port = 6379\n}\n`,
+        volume: `\nvolume vol_${id} {\n  driver = "local"\n}\n`,
+        depends: `  depends_on = [db1]\n`
+      };
+      document.getElementById('dslEditor').value += map[type] || '';
+      runCompile();
+    }
+
+    function runCompile() {
+      const src = document.getElementById('dslEditor').value;
+      const res = DevOpsCompiler.Pipeline.compile(src, { env: activeEnv });
+      activeCompilation = res;
+      syncEditor();
+
+      document.getElementById('diagTiming').textContent = `${res.elapsedMs} ms`;
+      const diag = document.getElementById('diagMessage');
+
+      // Update Pipeline Ribbon Pills
+      const setPill = (id, text, ok) => {
+        const el = document.getElementById(id);
+        el.textContent = text;
+        el.className = `stage-pill ${ok ? 'ok' : 'err'}`;
+      };
+
+      setPill('ribLex', `${res.lexerResult.tokens.length} tok`, res.lexerResult.errors.length === 0);
+      setPill('ribPar', res.parserResult?.errors.length === 0 ? 'VALID' : 'ERR', res.parserResult && res.parserResult.errors.length === 0);
+      setPill('ribSem', `${res.semanticResult ? res.semanticResult.errors.length : '-'} err`, res.semanticResult && res.semanticResult.errors.length === 0);
+      setPill('ribIr', res.irResult ? `${res.irResult.stages.length} stg` : 'BLOCK', Boolean(res.irResult));
+      setPill('ribCg', res.codeGenResult ? '5 files' : 'BLOCK', Boolean(res.codeGenResult));
+      setPill('ribDev', res.linterResult ? `${res.linterResult.score}/100` : '--', Boolean(res.linterResult && res.linterResult.score >= 80));
+
+      if (res.success) {
+        diag.style.color = 'var(--emerald)';
+        diag.style.cursor = 'default';
+        diag.onclick = null;
+        diag.textContent = `Compiled cleanly (${activeEnv.toUpperCase()}) · ${res.irResult.metrics.vertices} resources · 0 cycles`;
+      } else {
+        const firstErr = res.allErrors[0] || { message: 'Compilation failed', line: 1 };
+        diag.style.color = 'var(--rose)';
+        diag.style.cursor = 'pointer';
+        diag.onclick = () => jumpToLine(firstErr.line || 1);
+        diag.textContent = `[${res.stageFailed}] ${firstErr.message}`;
+      }
+
+      renderLexer(res.lexerResult);
+      renderParser(res.parserResult);
+      renderSemantic(res.semanticResult);
+      renderIR(res.irResult);
+      renderCodeGen(res.codeGenResult);
+      renderDevOps(res.linterResult, res.irResult?.finops);
+      populateReport();
+    }
+
+    function renderLexer(lex) {
+      if (!lex) return;
+      document.getElementById('lexTotal').textContent = lex.tokens.length;
+      document.getElementById('lexLines').textContent = `${lex.metrics.totalLines} lines scanned`;
+      document.getElementById('lexKw').textContent = lex.metrics.keywordsCount;
+      document.getElementById('lexId').textContent = lex.metrics.identifiersCount;
+      document.getElementById('lexLit').textContent = lex.metrics.literalsCount;
+      document.getElementById('lexComm').textContent = `${lex.metrics.commentsStripped} comments`;
+
+      document.getElementById('tokenFlowChips').innerHTML = lex.tokens.slice(0, 32).map(t => `
+        <span class="tok-chip" onclick="jumpToLine(${t.line})">
+          <span class="tok-k" style="color:${t.type==='KEYWORD'?'#c084fc':(t.type==='STRING'?'#4ade80':(t.type==='NUMBER'?'#fbbf24':'#38bdf8'))}">${t.type}</span>
+          <span>${esc(t.raw !== undefined ? t.raw : t.value)}</span>
+        </span>
+      `).join('') + (lex.tokens.length > 32 ? `<span class="tok-chip">+${lex.tokens.length - 32} more</span>` : '');
+
+      document.getElementById('tokenTableBody').innerHTML = lex.tokens.map((t, i) => `
+        <tr class="clickable" onclick="jumpToLine(${t.line})">
+          <td style="color:var(--text-4)">${i + 1}</td>
+          <td><span class="badge ${t.type==='KEYWORD'?'badge-indigo':(t.type==='STRING'?'badge-ok':'badge-neutral')}">${t.type}</span></td>
+          <td><code>${esc(t.raw !== undefined ? t.raw : t.value)}</code></td>
+          <td>${t.line}:${t.col}</td>
+          <td style="color:var(--text-3)">${t.category}</td>
+        </tr>
+      `).join('');
+    }
+
+    function filterTokens() {
+      const q = document.getElementById('tokenSearchInput').value.toLowerCase();
+      document.querySelectorAll('#tokenTableBody tr').forEach(tr => {
+        tr.style.display = tr.innerText.toLowerCase().includes(q) ? '' : 'none';
+      });
+    }
+
+    function renderParser(par) {
+      if (!par || !par.ast) {
+        document.getElementById('astState').textContent = 'FAIL';
+        document.getElementById('astState').style.color = 'var(--rose)';
+        document.getElementById('astTreeViewer').innerHTML = `<span style="color:var(--rose)">Syntax error prevented AST completion.</span>`;
+        return;
+      }
+      document.getElementById('astRes').textContent = par.metrics.totalResources;
+      document.getElementById('astNodes').textContent = par.metrics.astNodeCount;
+      document.getElementById('astDepth').textContent = par.metrics.maxDepth;
+      document.getElementById('astState').textContent = par.errors.length ? 'FAIL' : 'VALID';
+      document.getElementById('astState').style.color = par.errors.length ? 'var(--rose)' : 'var(--emerald)';
+      document.getElementById('astRules').textContent = `${par.ruleInvocations} CFG reductions`;
+
+      let html = `<div class="ast-row"><span class="badge badge-indigo">Program</span> <span>(${par.ast.resources.length} resources)</span></div>`;
+      par.ast.resources.forEach(r => {
+        html += `<div class="ast-branch"><div class="ast-row" onclick="jumpToLine(${r.line})"><span class="badge badge-ok">${esc(r.resourceType)}</span> <strong>${esc(r.name)}</strong> <span style="color:#71717a">L${r.line}</span></div>`;
+        r.attributes.forEach(a => {
+          const val = a.value.type === 'ListLiteral' ? `[${a.value.elements.map(e => e.value ?? e.name).join(', ')}]` : JSON.stringify(a.value.value ?? a.value.name);
+          html += `<div class="ast-branch"><div class="ast-row" onclick="jumpToLine(${a.line})"><span class="hl-attr">${esc(a.key)}</span> = <span class="hl-number">${esc(val)}</span> <span style="color:#71717a; font-size:10px;">${a.value.type}</span></div></div>`;
+        });
+        html += `</div>`;
+      });
+      document.getElementById('astTreeViewer').innerHTML = html;
+      document.getElementById('astJsonViewer').textContent = JSON.stringify(par.ast, null, 2);
+    }
+
+    function toggleAstView(mode) {
+      document.getElementById('astTreeViewer').style.display = mode === 'tree' ? 'block' : 'none';
+      document.getElementById('astJsonViewer').style.display = mode === 'json' ? 'block' : 'none';
+      document.getElementById('btnAstTree').style.borderColor = mode === 'tree' ? 'var(--indigo)' : 'var(--border)';
+      document.getElementById('btnAstJson').style.borderColor = mode === 'json' ? 'var(--indigo)' : 'var(--border)';
+    }
+
+    function renderSemantic(sem) {
+      const box = document.getElementById('semanticAlertBox');
+      if (!sem) {
+        box.style.display = 'none';
+        document.getElementById('symbolCardsGrid').innerHTML = '';
+        document.getElementById('semanticMatrixBody').innerHTML = '';
+        return;
+      }
+      document.getElementById('semCount').textContent = sem.metrics.totalSymbols;
+      const badRefs = sem.referenceChecks.filter(r => !r.resolved).length;
+      const pct = sem.referenceChecks.length ? Math.round(((sem.referenceChecks.length - badRefs) / sem.referenceChecks.length) * 100) : 100;
+      document.getElementById('semRef').textContent = `${pct}%`;
+      document.getElementById('semRef').style.color = pct === 100 ? 'var(--emerald)' : 'var(--rose)';
+      document.getElementById('semCycle').textContent = sem.metrics.cycleDetected ? 'CYCLE' : 'ACYCLIC';
+      document.getElementById('semCycle').style.color = sem.metrics.cycleDetected ? 'var(--rose)' : 'var(--emerald)';
+      document.getElementById('semType').textContent = sem.errors.length ? 'FAIL' : 'PASS';
+      document.getElementById('semType').style.color = sem.errors.length ? 'var(--rose)' : 'var(--emerald)';
+
+      if (sem.errors.length) {
+        box.style.display = 'block';
+        box.innerHTML = sem.errors.map(e => `<div style="color:var(--rose); font-family:var(--font-mono); font-size:12px; cursor:pointer; margin-bottom:3px;" onclick="jumpToLine(${e.line})"><strong>[Line ${e.line}]</strong> ${esc(e.message)}</div>`).join('');
+      } else {
+        box.style.display = 'none';
+      }
+
+      document.getElementById('symbolCardsGrid').innerHTML = sem.symbolTable.map(s => `
+        <div class="sym-card" onclick="jumpToLine(${s.line})">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <strong style="font-family:var(--font-mono); font-size:13px;">${esc(s.name)}</strong>
+            <span class="badge badge-indigo">${esc(s.type)}</span>
+          </div>
+          <div style="font-size:11px; color:var(--text-3);">Deps: ${s.dependencies.length ? s.dependencies.join(', ') : 'none'}</div>
+          <div style="font-size:11px; color:var(--text-4); margin-top:2px;">Line ${s.line} &middot; ${Object.keys(s.attributes).length} attrs</div>
+        </div>
+      `).join('');
+
+      const rows = [
+        ...sem.typeChecks.map(tc => `<tr class="clickable" onclick="jumpToLine(${tc.line})"><td>Type</td><td>${esc(tc.resource)}.${esc(tc.attribute)}</td><td>${esc(tc.expected)}</td><td>L${tc.line}</td><td><span class="badge ${tc.passed?'badge-ok':'badge-err'}">${tc.passed?'PASS':'FAIL'}</span></td></tr>`),
+        ...sem.referenceChecks.map(rc => `<tr class="clickable" onclick="jumpToLine(${rc.line})"><td>Ref</td><td>${esc(rc.from)} &rarr; ${esc(rc.to)}</td><td>${esc(rc.via)}</td><td>L${rc.line}</td><td><span class="badge ${rc.resolved?'badge-ok':'badge-err'}">${rc.resolved?'OK':'MISSING'}</span></td></tr>`)
+      ];
+      document.getElementById('semanticMatrixBody').innerHTML = rows.join('') || `<tr><td colspan="5" style="text-align:center; color:var(--text-4);">No semantic checks evaluated.</td></tr>`;
+    }
+
+    function renderIR(ir) {
+      if (!ir) {
+        document.getElementById('dagSvg').innerHTML = '';
+        document.getElementById('irOptimizationsList').innerHTML = `<span style="color:var(--text-4)">Fix semantic errors to synthesize Intermediate Representation.</span>`;
+        return;
+      }
+      document.getElementById('irVerts').textContent = ir.metrics.vertices;
+      document.getElementById('irEdges').textContent = ir.metrics.edges;
+      document.getElementById('irStages').textContent = ir.metrics.totalStages;
+      document.getElementById('irOpts').textContent = ir.metrics.optimizationsCount;
+
+      document.getElementById('irOptimizationsList').innerHTML = ir.optimizations.map(o => `
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px; font-size:12px;">
+          <span class="badge badge-ok">${esc(o.pass)}</span>
+          <strong>${esc(o.target)}</strong>
+          <span style="color:var(--text-3)">${esc(o.description)}</span>
+        </div>
+      `).join('') || `<span style="color:var(--text-4)">Zero optimizations needed.</span>`;
+
+      drawDagSvg(ir);
+    }
+
+    function drawDagSvg(ir) {
+      const svg = document.getElementById('dagSvg');
+      svg.innerHTML = '';
+      if (!ir.stages.length) return;
+
+      const colGap = 215;
+      const width = Math.max(620, 24 + ir.stages.length * colGap + 20);
+      const maxRow = Math.max(...ir.stages.map(s => s.resources.length), 1);
+      const height = Math.max(230, maxRow * 68 + 56);
+      svg.setAttribute('width', width);
+      svg.setAttribute('height', height);
+      svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+
+      const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+      defs.innerHTML = `<marker id="arrow4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 1 L 10 5 L 0 9 z" fill="#6366f1"/></marker>`;
+      svg.appendChild(defs);
+
+      const coords = new Map();
+      ir.stages.forEach((stg, idx) => {
+        const x0 = 20 + idx * colGap;
+        const lane = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        lane.setAttribute('x', x0); lane.setAttribute('y', 10);
+        lane.setAttribute('width', 186); lane.setAttribute('height', height - 20);
+        lane.setAttribute('rx', 10); lane.setAttribute('fill', '#111118'); lane.setAttribute('stroke', 'rgba(255,255,255,0.08)');
+        svg.appendChild(lane);
+
+        const lbl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        lbl.setAttribute('x', x0 + 93); lbl.setAttribute('y', 28); lbl.setAttribute('text-anchor', 'middle');
+        lbl.setAttribute('fill', '#71717a'); lbl.setAttribute('font-size', '10'); lbl.setAttribute('font-weight', '700');
+        lbl.textContent = stg.stageName.toUpperCase();
+        svg.appendChild(lbl);
+
+        const stepY = (height - 45) / (stg.resources.length + 1);
+        stg.resources.forEach((name, rIdx) => {
+          const w = Math.min(168, Math.max(120, name.length * 8.2 + 44));
+          coords.set(name, { cx: x0 + 93, cy: 40 + (rIdx + 1) * stepY, width: w });
+        });
+      });
+
+      for (const [cName, node] of ir.graph.entries()) {
+        const cp = coords.get(cName);
+        if (!cp) continue;
+        node.dependencies.forEach(pName => {
+          const pp = coords.get(pName);
+          if (!pp) return;
+          const x1 = pp.cx + pp.width / 2, y1 = pp.cy, x2 = cp.cx - cp.width / 2 - 2, y2 = cp.cy, mx = (x1 + x2) / 2;
+          const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+          path.setAttribute('d', `M ${x1} ${y1} C ${mx} ${y1}, ${mx} ${y2}, ${x2} ${y2}`);
+          path.setAttribute('fill', 'none'); path.setAttribute('stroke', '#6366f1'); path.setAttribute('stroke-width', '1.8');
+          path.setAttribute('marker-end', 'url(#arrow4)');
+          svg.appendChild(path);
+        });
+      }
+
+      const palette = { network: '#0e7490', volume: '#b45309', database: '#047857', cache: '#7e22ce', server: '#4338ca' };
+      for (const [name, pos] of coords.entries()) {
+        const node = ir.graph.get(name);
+        const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        g.style.cursor = 'pointer';
+        g.addEventListener('click', () => {
+          const insp = document.getElementById('dagNodeInspector');
+          insp.style.display = 'block';
+          insp.innerHTML = `<strong style="color:#818cf8">${esc(node.name)}</strong> (${esc(node.type)}) &middot; Deps: [${node.dependencies.join(', ') || 'none'}] &middot; Attributes: ${esc(JSON.stringify(node.attributes))}`;
+        });
+
+        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        rect.setAttribute('x', pos.cx - pos.width / 2); rect.setAttribute('y', pos.cy - 20);
+        rect.setAttribute('width', pos.width); rect.setAttribute('height', 40); rect.setAttribute('rx', 8);
+        rect.setAttribute('fill', palette[node.type] || '#27272a');
+        rect.setAttribute('stroke', 'rgba(255,255,255,0.22)');
+        g.appendChild(rect);
+
+        const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        txt.setAttribute('x', pos.cx); txt.setAttribute('y', pos.cy - 2); txt.setAttribute('text-anchor', 'middle');
+        txt.setAttribute('fill', '#fff'); txt.setAttribute('font-size', '11.5'); txt.setAttribute('font-weight', '700');
+        txt.setAttribute('font-family', 'JetBrains Mono, monospace');
+        txt.textContent = name;
+        g.appendChild(txt);
+
+        const sub = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        sub.setAttribute('x', pos.cx); sub.setAttribute('y', pos.cy + 12); sub.setAttribute('text-anchor', 'middle');
+        sub.setAttribute('fill', '#e4e4e7'); sub.setAttribute('font-size', '9.5');
+        sub.textContent = `${node.type}${node.attributes.port ? ' :' + node.attributes.port : ''}`;
+        g.appendChild(sub);
+
+        svg.appendChild(g);
+      }
+    }
+
+    function renderCodeGen(cg) {
+      if (!cg) {
+        document.getElementById('codegenOutput').innerHTML = `<span class="hl-comment">// Resolve errors to synthesize target infrastructure files.</span>`;
+        document.getElementById('codegenLinesBadge').textContent = '0 lines';
+        return;
+      }
+      displayTarget(activeTarget);
+    }
+
+    function switchTarget(target, btn) {
+      activeTarget = target;
+      document.querySelectorAll('#stage-codegen .seg-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      displayTarget(target);
+    }
+
+    function getTargetMeta(t) {
+      const cg = activeCompilation?.codeGenResult;
+      if (!cg) return null;
+      return {
+        tf: { code: cg.terraform, file: 'terraform/main.tf', fmt: 'tf' },
+        compose: { code: cg.dockerCompose, file: 'docker-compose.yml', fmt: 'yaml' },
+        k8s: { code: cg.kubernetes, file: 'kubernetes/k8s-manifest.yaml', fmt: 'yaml' },
+        ansible: { code: cg.ansible, file: 'ansible/playbook.yml', fmt: 'yaml' },
+        gha: { code: cg.githubActions, file: `.github/workflows/deploy-${activeEnv}.yml`, fmt: 'yaml' }
+      }[t];
+    }
+
+    function displayTarget(t) {
+      const meta = getTargetMeta(t);
+      if (!meta) return;
+      document.getElementById('codegenFilename').textContent = meta.file;
+      document.getElementById('codegenLinesBadge').textContent = `${meta.code.split('\n').length} lines`;
+      document.getElementById('codegenOutput').innerHTML = DevOpsCompiler.Highlighters.highlightTarget(meta.code, meta.fmt);
+    }
+
+    function copyTargetCode() {
+      const m = getTargetMeta(activeTarget);
+      if (m) navigator.clipboard?.writeText(m.code);
+    }
+
+    function downloadTargetFile() {
+      const m = getTargetMeta(activeTarget);
+      if (!m) return;
+      triggerDownload(new Blob([m.code], { type: 'text/plain' }), m.file.split('/').pop());
+    }
+
+    async function exportBundle() {
+      const src = document.getElementById('dslEditor').value;
+      if (!activeCompilation?.success) {
+        document.getElementById('diagMessage').textContent = 'Fix compilation errors before exporting bundle.';
+        return;
+      }
+      if (hasBackend) {
+        try {
+          const r = await fetch('/api/export-bundle', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ source: src, env: activeEnv, name: 'devopsdsl-stack' })
+          });
+          if (r.ok) {
+            triggerDownload(await r.blob(), `devopsdsl-${activeEnv}-bundle.zip`);
+            return;
+          }
+        } catch {}
+      }
+      // Portable pure-JS MiniZip fallback (runs 100% natively on static GitHub Pages)
+      const cg = activeCompilation.codeGenResult;
+      const zipBytes = DevOpsCompiler.MiniZip.build([
+        { name: 'infrastructure.dsl', content: src },
+        { name: 'terraform/main.tf', content: cg.terraform },
+        { name: 'docker-compose.yml', content: cg.dockerCompose },
+        { name: 'kubernetes/k8s-manifest.yaml', content: cg.kubernetes },
+        { name: 'ansible/playbook.yml', content: cg.ansible },
+        { name: `.github/workflows/deploy-${activeEnv}.yml`, content: cg.githubActions },
+        { name: 'audit-report.json', content: JSON.stringify(activeCompilation, null, 2) }
+      ]);
+      triggerDownload(new Blob([zipBytes], { type: 'application/zip' }), `devopsdsl-${activeEnv}-bundle.zip`);
+    }
+
+    function renderDevOps(linter, finops) {
+      if (!linter || !finops) return;
+      document.getElementById('scoreRingVal').textContent = linter.score;
+      document.getElementById('scoreRingGrade').textContent = `Grade ${linter.grade}`;
+      const arc = document.getElementById('scoreRingArc');
+      arc.setAttribute('stroke-dashoffset', (263.9 * (1 - linter.score / 100)).toFixed(1));
+      arc.setAttribute('stroke', linter.score >= 90 ? '#10b981' : (linter.score >= 75 ? '#f59e0b' : '#f43f5e'));
+
+      document.getElementById('finPods').textContent = finops.totalContainers;
+      document.getElementById('finCpu').textContent = `${finops.totalVcpu} vCPU`;
+      document.getElementById('finMem').textContent = `${finops.totalMemoryGb} GB RAM`;
+      document.getElementById('finCost').textContent = `$${finops.estMonthlyTotalUsd}`;
+
+      const fixable = linter.findings.some(f => f.fixable);
+      document.getElementById('fixAllBtn').style.display = fixable ? 'inline-flex' : 'none';
+
+      const cont = document.getElementById('findingsContainer');
+      if (!linter.findings.length) {
+        cont.innerHTML = `<div class="badge badge-ok" style="padding:10px 14px; border-radius:8px; width:100%;">100% Shift-Left Compliant &mdash; zero policy risks detected in ${activeEnv.toUpperCase()}.</div>`;
+        return;
+      }
+      cont.innerHTML = linter.findings.map((f, idx) => `
+        <div style="background:var(--bg-card); border:1px solid var(--border); border-radius:8px; padding:10px 12px; margin-bottom:8px; display:flex; align-items:center; justify-content:space-between; gap:10px;">
+          <div>
+            <div style="display:flex; align-items:center; gap:7px; margin-bottom:2px;">
+              <span class="badge ${f.level==='warning'?'badge-warn':'badge-indigo'}">${esc(f.code)}</span>
+              <strong style="font-size:12.5px;">${esc(f.title)}</strong>
+              <span style="color:var(--rose); font-size:11px; font-family:var(--font-mono);">-${f.deduction}</span>
+            </div>
+            <div style="font-size:11.5px; color:var(--text-3);">${esc(f.description)}</div>
+          </div>
+          ${f.fixable ? `<button class="btn btn-emerald btn-sm" onclick="applySingleFix(${idx})">Auto-Fix</button>` : ''}
+        </div>
+      `).join('');
+    }
+
+    function applySingleFix(idx) {
+      const f = activeCompilation?.linterResult?.findings[idx];
+      if (!f) return;
+      const ed = document.getElementById('dslEditor');
+      ed.value = DevOpsCompiler.Linter.applyAutoFix(ed.value, f);
+      runCompile();
+    }
+
+    function applyAllFixes() {
+      let src = document.getElementById('dslEditor').value;
+      for (let i = 0; i < 15; i++) {
+        const res = DevOpsCompiler.Pipeline.compile(src, { env: activeEnv });
+        const f = res.linterResult?.findings.find(x => x.fixable);
+        if (!f) break;
+        const next = DevOpsCompiler.Linter.applyAutoFix(src, f);
+        if (next === src) break;
+        src = next;
+      }
+      document.getElementById('dslEditor').value = src;
+      runCompile();
+    }
+
+    function runCICDPipeline() {
+      switchView('view-studio', document.querySelector('[data-view=view-studio]'));
+      switchStage('stage-devops', document.querySelector('[data-stage=stage-devops]'));
+      const box = document.getElementById('cicdConsole');
+      box.innerHTML = '';
+      for (let i = 1; i <= 6; i++) document.getElementById(`pipeStep${i}`).className = 'cicd-step';
+
+      const ok = activeCompilation?.success;
+      const msgs = [
+        'Linted DSL grammar formatting & comments',
+        `Tokenized ${activeCompilation?.lexerResult?.tokens.length || 0} tokens & built AST`,
+        ok ? 'Symbol table & cycle check passed (0 cycles)' : `BLOCKED: ${activeCompilation?.allErrors[0]?.message}`,
+        `Ordered ${activeCompilation?.irResult?.stages.length || 0} topological stages via Kahn sort`,
+        'Synthesized Terraform, Compose, K8s, Ansible & GitHub CI',
+        'Dry-run container readiness probes passed (200 OK)'
+      ];
+      let step = 0;
+      const t = setInterval(() => {
+        if (step >= 6) { clearInterval(t); box.innerHTML += `<div style="color:#4ade80; font-weight:700;">Pipeline VERIFIED &amp; READY TO DEPLOY.</div>`; return; }
+        const el = document.getElementById(`pipeStep${step + 1}`);
+        if (step === 2 && !ok) {
+          el.classList.add('fail');
+          box.innerHTML += `<div style="color:#f87171;">[FAIL] ${esc(msgs[step])}</div>`;
+          clearInterval(t); return;
+        }
+        el.classList.add('pass');
+        box.innerHTML += `<div style="color:#34d399;">[PASS] ${esc(msgs[step])}</div>`;
+        box.scrollTop = box.scrollHeight;
+        step++;
+      }, 280);
+    }
+
+    function populateReport() {
+      const res = activeCompilation || {};
+      document.getElementById('repTokens').textContent = res.lexerResult ? `${res.lexerResult.tokens.length} tokens (${res.lexerResult.metrics.totalLines} lines)` : '-';
+      document.getElementById('repAst').textContent = res.parserResult ? `${res.parserResult.metrics.astNodeCount} AST nodes (Depth ${res.parserResult.metrics.maxDepth})` : 'Blocked';
+      document.getElementById('repSem').textContent = res.semanticResult ? `${res.semanticResult.metrics.totalSymbols} symbols (${res.semanticResult.errors.length} errors)` : 'Blocked';
+      document.getElementById('repIr').textContent = res.irResult ? `${res.irResult.stages.length} stages, ${res.irResult.metrics.edges} edges` : 'Blocked';
+      document.getElementById('repCg').textContent = res.codeGenResult ? 'Terraform, Compose, Kubernetes, Ansible, CI' : 'Blocked';
+      const s = res.linterResult?.score ?? 0, g = res.linterResult?.grade ?? 'N/A', cost = res.irResult?.finops?.estMonthlyTotalUsd ?? '0.00';
+      document.getElementById('repDevopsBox').innerHTML = `<strong>Policy Score:</strong> ${s}/100 (Grade ${g}) &middot; <strong>Environment:</strong> ${activeEnv.toUpperCase()} &middot; <strong>Estimated Cloud Footprint:</strong> $${cost}/mo`;
+      document.getElementById('repSourcePre').textContent = document.getElementById('dslEditor').value;
+    }
+
+    function downloadReportJson() {
+      triggerDownload(new Blob([JSON.stringify(activeCompilation, null, 2)], { type: 'application/json' }), `devopsdsl-audit-${activeEnv}.json`);
+    }
+
+    // HYBRID BACKEND / STATIC GITHUB PAGES DETECTION
+    async function detectRuntime() {
+      try {
+        const r = await fetch('/api/health');
+        if (r.ok) {
+          hasBackend = true;
+          document.getElementById('statusMode').textContent = 'RUNTIME: LOCAL API';
+          document.getElementById('statusMode').style.color = 'var(--emerald)';
+          return;
+        }
+      } catch {}
+      hasBackend = false;
+      document.getElementById('statusMode').textContent = 'RUNTIME: CLIENT ENGINE';
+      document.getElementById('statusMode').style.color = 'var(--cyan)';
+    }
+
+    async function openDrawer() {
+      document.getElementById('snapshotDrawer').classList.add('open');
+      await refreshSnapshots();
+    }
+    function closeDrawer() { document.getElementById('snapshotDrawer').classList.remove('open'); }
+
+    async function refreshSnapshots() {
+      let items = [];
+      if (hasBackend) {
+        try {
+          const r = await fetch('/api/projects');
+          const d = await r.json();
+          items = d.projects || [];
+        } catch {}
+      }
+      if (!items.length) {
+        try { items = JSON.parse(localStorage.getItem('devopsdsl_snapshots') || '[]'); } catch {}
+      }
+      window._snaps = items;
+      document.getElementById('snapshotsList').innerHTML = items.length ? items.map(p => `
+        <div style="background:var(--bg-card-2); border:1px solid var(--border); border-radius:8px; padding:9px 11px; display:flex; align-items:center; justify-content:space-between; cursor:pointer;" onclick='loadSnap(${JSON.stringify(p.name)})'>
+          <div>
+            <strong style="font-size:12.5px;">${esc(p.name)}</strong>
+            <div style="font-size:10.5px; color:var(--text-4);">${esc(p.updated_at || 'Saved')} &middot; ${esc(p.env)}</div>
+          </div>
+          <span class="badge badge-indigo">Load</span>
+        </div>
+      `).join('') : `<div style="color:var(--text-4); font-size:12px;">No saved snapshots yet.</div>`;
+    }
+
+    function loadSnap(name) {
+      const s = (window._snaps || []).find(x => x.name === name);
+      if (!s) return;
+      document.getElementById('dslEditor').value = s.source;
+      runCompile();
+      closeDrawer();
+    }
+
+    async function saveCurrentSnapshot() {
+      const name = document.getElementById('snapNameInput').value.trim() || `stack-${Date.now().toString().slice(-4)}`;
+      const src = document.getElementById('dslEditor').value;
+      const now = new Date().toISOString().slice(0, 19).replace('T', ' ');
+      if (hasBackend) {
+        try {
+          await fetch('/api/projects', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, source: src, env: activeEnv })
+          });
+        } catch {}
+      }
+      const list = JSON.parse(localStorage.getItem('devopsdsl_snapshots') || '[]').filter(x => x.name !== name);
+      list.unshift({ name, source: src, env: activeEnv, updated_at: now });
+      localStorage.setItem('devopsdsl_snapshots', JSON.stringify(list));
+      document.getElementById('snapNameInput').value = '';
+      await refreshSnapshots();
+    }
+
+    function renderUpgradesShowcase() {
+      document.getElementById('upgradesShowcaseGrid').innerHTML = UPGRADES.map(([num, title, desc]) => `
+        <div class="stat-tile" style="padding:14px 16px;">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:5px;">
+            <span class="badge badge-indigo">#${num}</span>
+            <strong style="font-size:13px;">${esc(title)}</strong>
+          </div>
+          <p style="font-size:12px; color:var(--text-3);">${esc(desc)}</p>
+        </div>
+      `).join('');
+    }
+
+    const COMMANDS = [
+      { label: 'Run Compiler Pipeline', k: 'Ctrl+Enter', fn: () => runCompile() },
+      { label: 'Run Automated CI/CD Simulator', k: 'CI/CD', fn: () => runCICDPipeline() },
+      { label: 'Export All IaC Artifacts (.zip)', k: 'ZIP', fn: () => exportBundle() },
+      { label: 'Auto-Fix All Security Findings', k: 'Fix', fn: () => applyAllFixes() },
+      { label: 'Toggle Light / Dark Theme', k: 'Theme', fn: () => toggleTheme() },
+      { label: 'View 20 Upgrades & Architecture', k: 'Arch', fn: () => switchView('view-arch', document.querySelector('[data-view=view-arch]')) },
+      { label: 'View Overall Academic Audit Report', k: 'PDF', fn: () => switchView('view-report', document.querySelector('[data-view=view-report]')) },
+      { label: 'Open Stage 01: Lexical Analysis', k: '01', fn: () => { switchView('view-studio', document.querySelector('[data-view=view-studio]')); switchStage('stage-lexer', document.querySelector('[data-stage=stage-lexer]')); } },
+      { label: 'Open Stage 04: IR & DAG Graph', k: '04', fn: () => { switchView('view-studio', document.querySelector('[data-view=view-studio]')); switchStage('stage-ir', document.querySelector('[data-stage=stage-ir]')); } },
+      { label: 'Open Stage 05: Multi-Target CodeGen', k: '05', fn: () => { switchView('view-studio', document.querySelector('[data-view=view-studio]')); switchStage('stage-codegen', document.querySelector('[data-stage=stage-codegen]')); } }
+    ];
+
+    function openCmdPalette() {
+      document.getElementById('cmdModal').classList.add('open');
+      const inp = document.getElementById('cmdSearch');
+      inp.value = ''; renderCmdList(); setTimeout(() => inp.focus(), 40);
+    }
+    function closeCmdPalette() { document.getElementById('cmdModal').classList.remove('open'); }
+    function renderCmdList() {
+      const q = document.getElementById('cmdSearch').value.toLowerCase();
+      document.getElementById('cmdList').innerHTML = COMMANDS.filter(c => c.label.toLowerCase().includes(q)).map(c => `
+        <div style="padding:8px 12px; border-radius:7px; display:flex; justify-content:space-between; cursor:pointer; font-size:12.5px;" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='transparent'" onclick='execCmd(${JSON.stringify(c.label)})'>
+          <span>${esc(c.label)}</span>
+          <span class="badge badge-neutral">${esc(c.k)}</span>
+        </div>
+      `).join('');
+    }
+    function execCmd(label) { closeCmdPalette(); COMMANDS.find(c => c.label === label)?.fn(); }
+
+    function triggerDownload(blob, filename) {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      a.click();
+    }
+
+    function esc(s) {
+      return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+  </script>
+</body>
+</html>
